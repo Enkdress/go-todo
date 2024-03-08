@@ -1,5 +1,7 @@
 package utils
 
+import "fmt"
+
 func CreateReturnObject[T comparable](data []T) map[string][]T {
 	returnObj := make(map[string][]T)
 	if len(data) == 0 {
@@ -9,4 +11,9 @@ func CreateReturnObject[T comparable](data []T) map[string][]T {
 	}
 
 	return returnObj
+}
+
+func CreateURI(resource string) string {
+	const V1URI = "/v1"
+	return fmt.Sprintf("%s/%s", V1URI, resource)
 }

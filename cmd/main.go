@@ -2,19 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 
 	. "github.com/enkdress/go-todo/pkg/handler"
 	. "github.com/enkdress/go-todo/pkg/repository"
+	"github.com/enkdress/go-todo/pkg/utils"
 	"github.com/labstack/echo/v4"
 )
-
-func buildResourceURI(resource string) string {
-	const V1URI = "/v1"
-	return fmt.Sprintf("%s/%s", V1URI, resource)
-}
 
 const dbFileName = "todo.db"
 
@@ -29,10 +24,9 @@ func main() {
 
 	taskRepository := NewTaskRepository(db)
 	taskHandler := TaskHandler{Repository: taskRepository}
-
 	server := echo.New()
-	server.GET(buildResourceURI("tasks"), taskHandler.GetAll)
-	server.POST(buildResourceURI("tasks"), taskHandler.Create)
+	server.GET(utils.CreateURI("tasks"), taskHandler.GetAll)
+	server.POST(utils.CreateURI("tasks"), taskHandler.Create)
 
 	server.Logger.Fatal(server.Start(":3000"))
 }

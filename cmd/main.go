@@ -16,7 +16,7 @@ func buildResourceURI(resource string) string {
 	return fmt.Sprintf("%s/%s", V1URI, resource)
 }
 
-const dbFileName = "tasks.db"
+const dbFileName = "todo.db"
 
 func main() {
 	os.Remove(dbFileName)

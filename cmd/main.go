@@ -24,6 +24,9 @@ func main() {
 
 	taskRepository := NewTaskRepository(db)
 	taskHandler := TaskHandler{Repository: taskRepository}
+
+	taskRepository.Migrate()
+
 	server := echo.New()
 	server.GET(utils.CreateURI("tasks"), taskHandler.GetAll)
 	server.POST(utils.CreateURI("tasks"), taskHandler.Create)

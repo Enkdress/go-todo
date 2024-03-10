@@ -53,3 +53,24 @@ func (ht TaskHandler) Create(c echo.Context) error {
 	c.JSON(http.StatusOK, createdTask)
 	return nil
 }
+
+func (ht TaskHandler) Update(c echo.Context) error {
+	repository := ht.Repository
+	var task Task
+
+	err := c.Bind(&task)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	uTask, err := repository.Update(task)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	c.JSON(http.StatusOK, uTask)
+
+	return nil
+}

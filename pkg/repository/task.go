@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	. "github.com/enkdress/go-todo/pkg/model"
 	"github.com/mattn/go-sqlite3"
@@ -93,4 +94,45 @@ func (tr *TaskRepository) All() ([]Task, error) {
 	}
 
 	return all, nil
+}
+
+func (tr *TaskRepository) Update(updatedTask Task) (*Task, error) {
+	res := tr.DB.QueryRow(fmt.Sprintf("SELECT uuid, name, description, is_finished, owner_id, due_date, created_at FROM tasks WHERE uuid = '%s'", updatedTask.UUID))
+	var task Task
+
+	err := res.Scan(
+		&task.UUID,
+		&task.Name,
+		&task.Description,
+		&task.IsFinished,
+		&task.OwnerId,
+		&task.DueDate,
+		&task.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if task.Name != updatedTask.Name {
+		_, err = tr.DB.Exec(fmt.Sprintf("UPDATE tasks SET name = '%s' WHERE uuid = '%s'", updatedTask.Name, updatedTask.UUID))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if task.Description != updatedTask.Description {
+		_, err = tr.DB.Exec(fmt.Sprintf("UPDATE tasks SET description = '%s' WHERE uuid = '%s'", updatedTask.Description, updatedTask.UUID))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if task.IsFinished != updatedTask.IsFinished {
+		_, err = tr.DB.Exec(fmt.Sprintf("UPDATE tasks SET is_finished = %d WHERE uuid = '%s'", updatedTask.IsFinished, updatedTask.UUID))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &updatedTask, nil
 }

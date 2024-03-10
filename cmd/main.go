@@ -30,6 +30,7 @@ func main() {
 	server := echo.New()
 	server.GET(utils.CreateURI("tasks"), taskHandler.GetAll)
 	server.POST(utils.CreateURI("tasks"), taskHandler.Create)
+	server.PUT(utils.CreateURI("tasks"), taskHandler.Update)
 
 	server.Logger.Fatal(server.Start(":3000"))
 }

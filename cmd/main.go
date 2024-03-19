@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"log"
-	"os"
 
 	. "github.com/enkdress/go-todo/pkg/handler"
 	. "github.com/enkdress/go-todo/pkg/repository"
@@ -14,8 +13,6 @@ import (
 const dbFileName = "todo.db"
 
 func main() {
-	os.Remove(dbFileName)
-
 	db, err := sql.Open("sqlite3", dbFileName)
 
 	if err != nil {
@@ -31,6 +28,7 @@ func main() {
 	server.GET(utils.CreateURI("tasks"), taskHandler.GetAll)
 	server.POST(utils.CreateURI("tasks"), taskHandler.Create)
 	server.PUT(utils.CreateURI("tasks"), taskHandler.Update)
+	server.DELETE(utils.CreateURI("tasks"), taskHandler.Delete)
 
 	server.Logger.Fatal(server.Start(":3000"))
 }

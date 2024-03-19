@@ -17,3 +17,10 @@ func CreateURI(resource string) string {
 	const V1URI = "/v1"
 	return fmt.Sprintf("%s/%s", V1URI, resource)
 }
+
+func CreateReturnMessage(value bool) map[string]bool {
+	returnObj := make(map[string]bool)
+	returnObj["message"] = value
+
+	return returnObj
+}

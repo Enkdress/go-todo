@@ -74,3 +74,24 @@ func (ht TaskHandler) Update(c echo.Context) error {
 
 	return nil
 }
+
+func (ht TaskHandler) Delete(c echo.Context) error {
+	repository := ht.Repository
+	var task Task
+
+	err := c.Bind(&task)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	isDeleted, err := repository.Delete(task)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	c.JSON(http.StatusOK, utils.CreateReturnMessage(isDeleted))
+
+	return nil
+}

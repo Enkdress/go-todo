@@ -136,3 +136,13 @@ func (tr *TaskRepository) Update(updatedTask Task) (*Task, error) {
 
 	return &updatedTask, nil
 }
+
+func (tr *TaskRepository) Delete(deletedTask Task) (bool, error) {
+	_, err := tr.DB.Exec("DELETE FROM tasks WHERE uuid=?", deletedTask.UUID)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}

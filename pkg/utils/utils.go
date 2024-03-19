@@ -18,8 +18,8 @@ func CreateURI(resource string) string {
 	return fmt.Sprintf("%s/%s", V1URI, resource)
 }
 
-func CreateReturnMessage(value bool) map[string]bool {
-	returnObj := make(map[string]bool)
+func CreateReturnMessage[T comparable](value T) map[string]T {
+	returnObj := make(map[string]T)
 	returnObj["message"] = value
 
 	return returnObj

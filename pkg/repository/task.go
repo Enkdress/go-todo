@@ -3,10 +3,16 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	. "github.com/enkdress/go-todo/pkg/model"
 	"github.com/mattn/go-sqlite3"
+)
+
+var (
+	ErrDuplicate    = errors.New("record already exists")
+	ErrNotExists    = errors.New("row not exists")
+	ErrUpdateFailed = errors.New("update failed")
+	ErrDeleteFailed = errors.New("delete failed")
 )
 
 type TaskRepository struct {
@@ -46,7 +52,7 @@ func (tr *TaskRepository) Create(task Task) (*Task, error) {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
 			if errors.Is(sqliteErr.ExtendedCode, sqlite3.ErrConstraintUnique) {
-				return nil, errors.New("record already exists")
+				return nil, ErrDuplicate
 			}
 		}
 
@@ -97,51 +103,38 @@ func (tr *TaskRepository) All() ([]Task, error) {
 }
 
 func (tr *TaskRepository) Update(updatedTask Task) (*Task, error) {
-	res := tr.DB.QueryRow(fmt.Sprintf("SELECT uuid, name, description, is_finished, owner_id, due_date, created_at FROM tasks WHERE uuid = '%s'", updatedTask.UUID))
-	var task Task
+	res, err := tr.DB.Exec("UPDATE tasks SET name = ?, description = ?, is_finished = ? WHERE uuid = ?", updatedTask.Name, updatedTask.Description, updatedTask.IsFinished, updatedTask.UUID)
 
-	err := res.Scan(
-		&task.UUID,
-		&task.Name,
-		&task.Description,
-		&task.IsFinished,
-		&task.OwnerId,
-		&task.DueDate,
-		&task.CreatedAt,
-	)
 	if err != nil {
 		return nil, err
 	}
 
-	if task.Name != updatedTask.Name {
-		_, err = tr.DB.Exec(fmt.Sprintf("UPDATE tasks SET name = '%s' WHERE uuid = '%s'", updatedTask.Name, updatedTask.UUID))
-		if err != nil {
-			return nil, err
-		}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
 	}
 
-	if task.Description != updatedTask.Description {
-		_, err = tr.DB.Exec(fmt.Sprintf("UPDATE tasks SET description = '%s' WHERE uuid = '%s'", updatedTask.Description, updatedTask.UUID))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if task.IsFinished != updatedTask.IsFinished {
-		_, err = tr.DB.Exec(fmt.Sprintf("UPDATE tasks SET is_finished = %d WHERE uuid = '%s'", updatedTask.IsFinished, updatedTask.UUID))
-		if err != nil {
-			return nil, err
-		}
+	if rowsAffected == 0 {
+		return nil, ErrUpdateFailed
 	}
 
 	return &updatedTask, nil
 }
 
 func (tr *TaskRepository) Delete(deletedTask Task) (bool, error) {
-	_, err := tr.DB.Exec("DELETE FROM tasks WHERE uuid=?", deletedTask.UUID)
+	res, err := tr.DB.Exec("DELETE FROM tasks WHERE uuid=?", deletedTask.UUID)
 
 	if err != nil {
 		return false, err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rowsAffected == 0 {
+		return false, ErrDeleteFailed
 	}
 
 	return true, nil

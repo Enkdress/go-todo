@@ -7,7 +7,6 @@ import (
 	. "github.com/enkdress/go-todo/pkg/model"
 	. "github.com/enkdress/go-todo/pkg/repository"
 	"github.com/enkdress/go-todo/pkg/utils"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -37,7 +36,7 @@ func (ht TaskHandler) Create(c echo.Context) error {
 	repository := ht.Repository
 	var task Task
 	err := c.Bind(&task)
-	task.UUID = uuid.NewString()
+	task.UUID = "ccdd5d63-a498-4de5-b177-7d65393c18ee"
 
 	if err != nil {
 		log.Fatal(err)
@@ -45,6 +44,12 @@ func (ht TaskHandler) Create(c echo.Context) error {
 	}
 
 	createdTask, err := repository.Create(task)
+
+	if err == ErrDuplicate {
+		c.JSON(http.StatusBadRequest, utils.CreateReturnMessage[string](err.Error()))
+		return nil
+	}
+
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -86,8 +91,13 @@ func (ht TaskHandler) Delete(c echo.Context) error {
 	}
 
 	isDeleted, err := repository.Delete(task)
+
+	if err == ErrDeleteFailed {
+		c.JSON(http.StatusBadRequest, utils.CreateReturnMessage[bool](isDeleted))
+		return nil
+	}
+
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 

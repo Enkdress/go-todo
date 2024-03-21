@@ -122,7 +122,7 @@ func (m Kanban) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SetCursor(m.activeBoard + 1)
 			}
 			return m, nil
-		case "d":
+		case "f":
 			selectedIndex := activeBoard.list.Cursor()
 			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
 

@@ -172,6 +172,30 @@ func (m Kanban) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			activeBoard.list.RemoveItem(selectedIndex)
 			return m, m.boards[0].list.InsertItem(0, selectedItem)
+		case "d":
+			selectedIndex := activeBoard.list.Cursor()
+			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
+
+			jsonData, err := json.Marshal(selectedItem)
+			if err != nil {
+				log.Fatal(err)
+			}
+			jsonBuf := bytes.NewBuffer(jsonData)
+			req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/tasks", baseUrl), jsonBuf)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			_, err = httpClient.Do(req)
+
+			if err != nil {
+				log.Fatal(err)
+				return m, nil
+			}
+
+			activeBoard.list.RemoveItem(selectedIndex)
+			return m, nil
 		}
 	}
 

@@ -42,6 +42,28 @@ func NewBoard(title string, tasks []list.Item) *Board {
 	return &model
 }
 
+func HttpAction[T comparable](method string, endpoint string, v T) error {
+	jsonData, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	jsonBuf := bytes.NewBuffer(jsonData)
+	req, err := http.NewRequest(method, fmt.Sprintf("%s/%s", baseUrl, endpoint), jsonBuf)
+
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, err = httpClient.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (b *Board) SetCursor(cursor model.Task) {
 	b.cursor = cursor
 }
@@ -127,23 +149,7 @@ func (m Kanban) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
 
 			selectedItem.IsFinished = 1
-			jsonData, err := json.Marshal(selectedItem)
-			if err != nil {
-				log.Fatal(err)
-			}
-			jsonBuf := bytes.NewBuffer(jsonData)
-			req, err := http.NewRequest("PUT", fmt.Sprintf("%s/tasks", baseUrl), jsonBuf)
-
-			if err != nil {
-				log.Fatal(err)
-			}
-			req.Header.Set("Content-Type", "application/json")
-			_, err = httpClient.Do(req)
-
-			if err != nil {
-				log.Fatal(err)
-				return m, nil
-			}
+			HttpAction[model.Task]("PUT", "tasks", selectedItem)
 
 			activeBoard.list.RemoveItem(selectedIndex)
 			return m, m.boards[1].list.InsertItem(0, selectedItem)
@@ -152,23 +158,7 @@ func (m Kanban) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
 
 			selectedItem.IsFinished = 0
-			jsonData, err := json.Marshal(selectedItem)
-			if err != nil {
-				log.Fatal(err)
-			}
-			jsonBuf := bytes.NewBuffer(jsonData)
-			req, err := http.NewRequest("PUT", fmt.Sprintf("%s/tasks", baseUrl), jsonBuf)
-
-			if err != nil {
-				log.Fatal(err)
-			}
-			req.Header.Set("Content-Type", "application/json")
-			_, err = httpClient.Do(req)
-
-			if err != nil {
-				log.Fatal(err)
-				return m, nil
-			}
+			HttpAction[model.Task]("PUT", "tasks", selectedItem)
 
 			activeBoard.list.RemoveItem(selectedIndex)
 			return m, m.boards[0].list.InsertItem(0, selectedItem)
@@ -176,23 +166,7 @@ func (m Kanban) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			selectedIndex := activeBoard.list.Cursor()
 			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
 
-			jsonData, err := json.Marshal(selectedItem)
-			if err != nil {
-				log.Fatal(err)
-			}
-			jsonBuf := bytes.NewBuffer(jsonData)
-			req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/tasks", baseUrl), jsonBuf)
-
-			if err != nil {
-				log.Fatal(err)
-			}
-			req.Header.Set("Content-Type", "application/json")
-			_, err = httpClient.Do(req)
-
-			if err != nil {
-				log.Fatal(err)
-				return m, nil
-			}
+			HttpAction[model.Task]("DELETE", "tasks", selectedItem)
 
 			activeBoard.list.RemoveItem(selectedIndex)
 			return m, nil

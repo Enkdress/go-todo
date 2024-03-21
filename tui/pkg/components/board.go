@@ -1,11 +1,25 @@
 package components
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/enkdress/go-todo/pkg/model"
 )
+
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
+
+var baseUrl = "http://127.0.0.1:3000/v1"
 
 var (
 	bgColor          = lipgloss.AdaptiveColor{Light: "#faf4ed", Dark: "#232136"}
@@ -41,33 +55,42 @@ func (b *Kanban) SetCursor(cursor int) {
 	b.activeBoard = cursor
 }
 
+type Response struct {
+	Data []model.Task `json:"data"`
+}
+
 func InitialModel() *Kanban {
-	TodoItems := []list.Item{
-		model.NewTask("Hello there Todo", "Say Hello To My Friend"),
-		model.NewTask("Hello there Todo 2", "Say Hello To My Friend"),
-		model.NewTask("Hello there Todo 3", "Say Hello To My Friend"),
-		model.NewTask("Hello there Todo 4", "Say Hello To My Friend"),
+	res, err := httpClient.Get(fmt.Sprintf("%s/tasks", baseUrl))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	inProgressItems := []list.Item{
-		model.NewTask("Hello there In Progress", "Say Hello To My Friend"),
-		model.NewTask("Hello there In Progress 2", "Say Hello To My Friend"),
-		model.NewTask("Hello there In Progress 3", "Say Hello To My Friend"),
-		model.NewTask("Hello there In Progress 4", "Say Hello To My Friend"),
+	var data Response
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	todoItems := []list.Item{}
+	doneItems := []list.Item{}
+
+	for _, t := range data.Data {
+		if t.IsFinished == 1 {
+			doneItems = append(doneItems, t)
+		} else {
+			todoItems = append(todoItems, t)
+		}
 	}
 
-	doneItems := []list.Item{
-		model.NewTask("Hello there Done", "Say Hello To My Friend"),
-		model.NewTask("Hello there Done 2", "Say Hello To My Friend"),
-		model.NewTask("Hello there Done 3", "Say Hello To My Friend"),
-		model.NewTask("Hello there Done 4", "Say Hello To My Friend"),
-	}
-
-	todoBoard := NewBoard("To Do", TodoItems)
-	inProgressBoard := NewBoard("In Progress", inProgressItems)
+	todoBoard := NewBoard("To Do", todoItems)
 	doneBoard := NewBoard("Done", doneItems)
 	boards := make([]Board, 0, 0)
-	boards = append(boards, *todoBoard, *inProgressBoard, *doneBoard)
+	boards = append(boards, *todoBoard, *doneBoard)
 
 	return &Kanban{
 		boards:      boards,
@@ -99,18 +122,56 @@ func (m Kanban) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SetCursor(m.activeBoard + 1)
 			}
 			return m, nil
-		case "i":
-			selectedIndex := activeBoard.list.Cursor()
-			selectedItem := activeBoard.list.Items()[selectedIndex]
-			activeBoard.list.RemoveItem(selectedIndex)
-
-			return m, m.boards[1].list.InsertItem(0, selectedItem)
 		case "d":
 			selectedIndex := activeBoard.list.Cursor()
-			selectedItem := activeBoard.list.Items()[selectedIndex]
-			activeBoard.list.RemoveItem(selectedIndex)
+			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
 
-			return m, m.boards[2].list.InsertItem(0, selectedItem)
+			selectedItem.IsFinished = 1
+			jsonData, err := json.Marshal(selectedItem)
+			if err != nil {
+				log.Fatal(err)
+			}
+			jsonBuf := bytes.NewBuffer(jsonData)
+			req, err := http.NewRequest("PUT", fmt.Sprintf("%s/tasks", baseUrl), jsonBuf)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			_, err = httpClient.Do(req)
+
+			if err != nil {
+				log.Fatal(err)
+				return m, nil
+			}
+
+			activeBoard.list.RemoveItem(selectedIndex)
+			return m, m.boards[1].list.InsertItem(0, selectedItem)
+		case "u":
+			selectedIndex := activeBoard.list.Cursor()
+			selectedItem := activeBoard.list.Items()[selectedIndex].(model.Task)
+
+			selectedItem.IsFinished = 0
+			jsonData, err := json.Marshal(selectedItem)
+			if err != nil {
+				log.Fatal(err)
+			}
+			jsonBuf := bytes.NewBuffer(jsonData)
+			req, err := http.NewRequest("PUT", fmt.Sprintf("%s/tasks", baseUrl), jsonBuf)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			_, err = httpClient.Do(req)
+
+			if err != nil {
+				log.Fatal(err)
+				return m, nil
+			}
+
+			activeBoard.list.RemoveItem(selectedIndex)
+			return m, m.boards[0].list.InsertItem(0, selectedItem)
 		}
 	}
 
